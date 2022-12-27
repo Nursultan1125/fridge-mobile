@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:http/http.dart' as http;
@@ -15,7 +14,7 @@ class ScannerScreen extends StatefulWidget {
 class _ScannerScreenState extends State<ScannerScreen> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   Barcode? result;
-  QRViewController? controller;
+  late final StreamSubscription _streamSubscription;
   var client = http.Client();
 
   @override
@@ -68,36 +67,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   void _onQRViewCreated(QRViewController controller) {
-    this.controller = controller;
-
-    controller.scannedDataStream.listen((scanData){
-
-      setState(() {
-        result = scanData;
-        unawaited(() async {
-          Future.delayed(const Duration(milliseconds: 1000), () async
-          {
-            await openDoor(result!);
-          });
-        }.call());
-
-      });
+    _streamSubscription = controller.scannedDataStream.listen((scanData) async {
+      if (result == scanData) return;
+      result = scanData;
+      if (result == null) return;
+      await Future.delayed(const Duration(milliseconds: 1000));
+      await openDoor(result!);
     });
   }
 
   @override
   void dispose() {
-    controller?.dispose();
+    _streamSubscription.cancel();
     super.dispose();
   }
 
-  Future openDoor(scanData) async{
+  Future openDoor(scanData) async {
     var url = Uri.http('mqtt.memorymee.org', 'fridge/$scanData/open-lock');
     var response = await http.get(url);
-    if (response.statusCode == 200){
-      Navigator.pop(context);
-    }else {
-      Navigator.pop(context);
-    }
+    if (response.statusCode == 200) {
+    } else {}
+    Navigator.pop(context);
   }
 }
