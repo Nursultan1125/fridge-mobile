@@ -87,7 +87,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     if (response.statusCode == 200) {
       _showMyDialog(scanData.code ?? "");
     } else {
-
+      showErrorDialog();
     }
 
   }
@@ -97,6 +97,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
     await http.get(url);
     result = null;
     Navigator.of(context).pop();
+  }
+
+  Future<void> showErrorDialog() {
+    return showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Ошибка"),
+            content: Text("QR code не найден."),
+            actions: [
+              TextButton(
+                child: Text("OK"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
   }
 
   Future<void> _showMyDialog(String code) async {
@@ -109,7 +129,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
           content: SingleChildScrollView(
             child: ListBody(
               children: const <Widget>[
-                Text("title"),
                 Text('Вы подключились холдильнику Smart'),
               ],
             ),
