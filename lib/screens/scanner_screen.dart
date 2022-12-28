@@ -68,11 +68,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   void _onQRViewCreated(QRViewController controller) {
     _streamSubscription = controller.scannedDataStream.listen((scanData) async {
-      if (result == scanData) return;
+      if (result?.code == scanData.code) return;
       result = scanData;
       if (result == null) return;
-      await Future.delayed(const Duration(milliseconds: 1000));
-      await openDoor(result!);
+      await getFridge(result!);
     });
   }
 
@@ -82,11 +81,47 @@ class _ScannerScreenState extends State<ScannerScreen> {
     super.dispose();
   }
 
-  Future openDoor(scanData) async {
-    var url = Uri.http('mqtt.memorymee.org', 'fridge/$scanData/open-lock');
+  Future getFridge(Barcode scanData) async {
+    var url = Uri.http('mqtt.memorymee.org', 'fridge/${scanData.code}');
     var response = await http.get(url);
     if (response.statusCode == 200) {
-    } else {}
-    Navigator.pop(context);
+      _showMyDialog(scanData.code ?? "");
+    } else {
+
+    }
+
+  }
+
+  Future openDoor(String code) async {
+    Uri url = Uri.http('mqtt.memorymee.org', 'fridge/$code/open-lock');
+    await http.get(url);
+    result = null;
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _showMyDialog(String code) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('QR Холодильник'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: const <Widget>[
+                Text("title"),
+                Text('Вы подключились холдильнику Smart'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Открыть холодьник'),
+              onPressed: () => openDoor(code),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
